@@ -33,41 +33,40 @@ overdisp_fun <- function(Model1) {
 
 
 system.time(Model_PPS <- glmmTMB(pps_y_ss_severity_score ~ 1+ visit+sex+
-                                interview_age+race_ethnicity+high_educ+
+                                interview_age+race_ethnicity+high.educ.bl+
                                 household_income+FH_Psychosis+neighborhood_crime_y+rel_relationship+
-                                TBI_3cat + marital_allvisits+(0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
+                                TBI_3cat + married.bl+pmq_y_ss_mean+ (0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
                               family=nbinom2, data=ABCD_TBI,  control = glmmTMBControl(parallel = 16)))
 summary(Model_PPS)
-# TBI_3catmild TBI                   0.104134   0.139787   0.745 0.456307    
-# TBI_3catpossible mild TBI          0.190971   0.089440   2.135 0.032746 * 
+# TBI_3catmild TBI                    0.128699   0.138272   0.931 0.351972    
+# TBI_3catpossible mild TBI           0.160343   0.088852   1.805 0.071135 .  
+#Number of obs: 30110, groups:  src_subject_id, 10668; abcd_site, 22; rel_family_id, 8854
+# AIC      BIC   logLik deviance df.resid 
+# 132245.0 132502.7 -66091.5 132183.0    30079 
+
 exp(confint(Model_PPS))
-
-# cond.TBI_3catmild TBI                   0.8437957   1.4595263  1.1097486
-# cond.TBI_3catpossible mild TBI          1.0157951   1.4423458  1.2104246
-
-
-#Number of obs: 30325, groups:  src_subject_id, 11396; abcd_site, 22; rel_family_id, 9467
+#                                             2.5 %       97.5 %    Estimate
+# cond.TBI_3catmild TBI                     0.8673538    1.4913880   1.1373482
+# cond.TBI_3catpossible mild TBI            0.9862915    1.3972267   1.1739135
 
 #####
 
 
 system.time(Model_CBCL <- glmmTMB(CBCL_total ~ 1+ visit+sex+
-                                interview_age+race_ethnicity+high_educ+
-                                household_income+neighborhood_crime_y+rel_relationship+
-                                TBI_3cat + marital_allvisits+FH_Psychosis+(0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
+                                interview_age+race_ethnicity+high.educ.bl+
+                                household_income+FH_Psychosis+neighborhood_crime_y+rel_relationship+
+                                TBI_3cat + married.bl+pmq_y_ss_mean+ (0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
                               family=nbinom2, data=ABCD_TBI,  control = glmmTMBControl(parallel = 16)))
 summary(Model_CBCL)
-# TBI_3catmild TBI                   0.1500995  0.0461919   3.249 0.001156 ** 
-#TBI_3catpossible mild TBI          0.0704796  0.0292021   2.414 0.015799 *  
-exp(0.1500995) #1.16195
-exp(0.0704796) #1.073023
-#Number of obs: 30330, groups:  src_subject_id, 11396; abcd_site, 22; rel_family_id, 9467
+#TBI_3catmild TBI                    0.140549   0.046078   3.050 0.002287 ** 
+#TBI_3catpossible mild TBI           0.069292   0.029171   2.375 0.017530 *  
+# AIC       BIC    logLik  deviance  df.resid 
+# 215877.0  216134.7 -107907.5  215815.0     30081 
+#Number of obs: 30112, groups:  src_subject_id, 10668; abcd_site, 22; rel_family_id, 8854
 
-
-exp(confint(Model_CBCL))
-# cond.TBI_3catmild TBI                  1.0613749 1.2720552 1.1619498
-# cond.TBI_3catpossible mild TBI         1.0133328 1.1362287 1.0730227
-
+exp(confint(Model8))
+# cond.TBI_3catmild TBI                   1.0515199  1.2596836  1.1509050
+# cond.TBI_3catpossible mild TBI          1.0121924  1.1348111  1.0717496
 #######
 
 ################################################################################
@@ -79,15 +78,16 @@ colSums(is.na(ABCD_TBI))
 
 
 round(colSums(is.na(ABCD_TBI))/nrow(ABCD_TBI)*100,2)
-#household_income        FH_Psychosis 
-#      8.23                   1.19
+#household_income       FH_Psychosis 
+#      8.25                   1.19
 
 md.pattern(ABCD_TBI)
 md.pairs(ABCD_TBI)$mr
 
 #separating the variables I need
 dat1 <- ABCD_TBI[, c("src_subject_id", "visit", "rel_family_id", "abcd_site", "pps_y_ss_severity_score", "sex", "interview_age", 
-                     "race_ethnicity", "household_income", "rel_relationship", "neighborhood_crime_y", "high_educ", "FH_Psychosis", "TBI_3cat", "marital_allvisits")]
+                      "race_ethnicity", "household_income", "rel_relationship", "neighborhood_crime_y", "high.educ.bl", "FH_Psychosis", "TBI_3cat", "married.bl",
+                     "pmq_y_ss_mean" , "fes_y_ss_fc"  )]
 
 #convert id to an integer
 dat1$src_subject_id <- as.integer(dat1$src_subject_id)
@@ -102,7 +102,7 @@ ini <- mice(dat1, maxit=0) #dat1 is already in long form.
 method <- ini$method
 method["household_income"] <- "pmm"  #using predictive mean matching for household income
 pred <- ini$pred
-pred["household_income", ] <- c(-2, 2, 2, 2, 1, 1, 1, 1, 1,1,1, 1,1, 1, 1)
+pred["household_income", ] <- c(-2, 2, 2, 2, 1, 1, 1, 1, 1,1,1, 1,1, 1, 1, 1, 1)
 #0 means not included in imputation model, 1 denotes fixed effect, 2 a fixed and random effect, 
 #-2 identifies the class variable.
 
@@ -117,8 +117,7 @@ summary(imp.pmm2)
 #pooling the data sets for parameter estimation 
 #################
 
-cor2fisher <- function(r) {(1/2*log( ( 1 + r) / ( 1 - r ) ))  }
-fisher2cor <- function(z) {( exp(2*z) - 1 )/ ( exp(2*z) + 1 ) }
+ 
 
 est <- se <- rvar <- rcor <- vector(length=100, mode= "list")
 
@@ -126,10 +125,10 @@ for (i in 1:20) {
   cat(i, "\n")
   com <- complete(imp.pmm2, i)
   nb2modelFull1 <- glmmTMB::glmmTMB(pps_y_ss_severity_score ~ 1+ visit+sex+
-                                      interview_age+race_ethnicity+high_educ+
-                                      household_income+FH_Psychosis+neighborhood_crime_y+rel_relationship+
-                                      TBI_3cat + marital_allvisits+(0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
-                                    family=nbinom2, data=com,  control = glmmTMBControl(parallel = 16))
+                               interview_age+race_ethnicity+high.educ.bl +
+                               household_income+neighborhood_crime_y +rel_relationship +
+                               TBI_3cat +FH_Psychosis+married.bl+pmq_y_ss_mean+(0+visit|src_subject_id)+(1 | abcd_site)+ (1| rel_family_id) , 
+                             family=nbinom2, data=ABCD_TBI,  control = glmmTMBControl(parallel = 16)))
   s <- summary(nb2modelFull1)
   est[[i]] <- s$coefficients$cond[, 1]
   se[[i]] <- s$coefficients$cond[, 2]
@@ -143,20 +142,15 @@ for (i in 1:20) {
 
 s
 
-#TBI_3catmild TBI                   0.242427   0.132431   1.831 0.067162 .  
-#TBI_3catpossible mild TBI          0.194070   0.084484   2.297 0.021612 *    
-exp(0.242427) #1.274338
-exp(0.194070) #1.214181
+# TBI_3catmild TBI                    0.192694   0.132148   1.458 0.144792    
+# TBI_3catpossible mild TBI           0.188674   0.083873   2.250 0.024480 *  
+
  
 exp(confint(nb2modelFull1))
 #                                           2.5 %       97.5 %    Estimate
-#cond.TBI_3catmild TBI                  -0.01713325  0.501988132  0.24242744
-#cond.TBI_3catpossible mild TBI          0.02848383  0.359655219  0.19406952
-options(digits=6)
-exp(-0.01713325)
-exp(0.501988132)
-exp(0.02848383)
-exp(0.359655219)
+# cond.TBI_3catmild TBI                     0.9358404    1.5709795   1.2125123
+# cond.TBI_3catpossible mild TBI            1.0245830    1.4234208   1.2076476
+ 
 
 ######
 
@@ -187,13 +181,18 @@ compare.percent.count <- function(orig,imp,counts){
 result <- compare.percent.count(orig=dat1, imp=imp.pmm2, counts= c("household_income"))
 result
 
+# $household_income
+#           [<50K] [>=50K & <100K] [>=100K]
+# imputed   50.15           25.07    24.78
+# observed  28.76           28.56    42.69
+
 ######
 
 #now doing the same for CBCL total 
  
-dat2 <- ABCD_TBI[, c("src_subject_id", "visit", "rel_family_id", "abcd_site", "pps_y_ss_severity_score", "sex", "interview_age", 
-                     "race_ethnicity", "household_income", "rel_relationship", "neighborhood_crime_y", "high_educ", "TBI_3cat", "marital_allvisits",
-                     "CBCL_total", "FH_Psychosis")]
+dat2 <- ABCD_TBI[, c("src_subject_id", "visit", "rel_family_id", "abcd_site", "CBCL_total", "sex", "interview_age", 
+                     "race_ethnicity", "household_income", "rel_relationship", "neighborhood_crime_y", "high.educ.bl", "FH_Psychosis", "TBI_3cat", "married.bl",
+                     "pmq_y_ss_mean" , "fes_y_ss_fc"  )]
 
 #convert id to an integer
 dat2$src_subject_id <- as.integer(dat2$src_subject_id)
@@ -208,7 +207,7 @@ ini <- mice(dat2, maxit=0) #dat2 is already in long form.
 method <- ini$method
 method["household_income"] <- "pmm"  #using predictive mean matching for household income
 pred <- ini$pred
-pred["household_income", ] <- c(-2, 2, 2, 2, 1, 1, 1, 1, 1,1,1, 1,1, 1, 1, 1)
+pred["household_income", ] <- c(-2, 2, 2, 2, 1, 1, 1, 1, 1,1,1, 1,1, 1, 1, 1, 1, 1)
 #0 means not included in imputation model, 1 denotes fixed effect, 2 a fixed and random effect, 
 #-2 identifies the class variable.
 
@@ -232,8 +231,6 @@ summary(imp.pmm3)
 #pooling the data sets for parameter estimation 
 
 
-cor2fisher <- function(r) {(1/2*log( ( 1 + r) / ( 1 - r ) ))  }
-fisher2cor <- function(z) {( exp(2*z) - 1 )/ ( exp(2*z) + 1 ) }
 
 est <- se <- rvar <- rcor <- vector(length=100, mode= "list")
 
@@ -241,9 +238,9 @@ for (i in 1:20) {
   cat(i, "\n")
   com1 <- complete(imp.pmm3, i)
   nb2modelFull2 <- glmmTMB::glmmTMB(CBCL_total ~ 1+ visit+sex+
-                                      interview_age+race_ethnicity+high_educ+
-                                      household_income+neighborhood_crime_y+rel_relationship+
-                                      TBI_3cat + marital_allvisits+FH_Psychosis+(0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
+                                      interview_age+race_ethnicity+high.educ.bl+
+                                      household_income+FH_Psychosis+neighborhood_crime_y+rel_relationship+
+                                      TBI_3cat + married.bl+(0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
                                     family=nbinom2, data=com1,  control = glmmTMBControl(parallel = 16))
   s <- summary(nb2modelFull2)
   est[[i]] <- s$coefficients$cond[, 1]
@@ -259,19 +256,13 @@ for (i in 1:20) {
 s
 
 
-
-#TBI_3catmild TBI                   1.730e-01  4.511e-02   3.834 0.000126 ***
-#TBI_3catpossible mild TBI          8.336e-02  2.838e-02   2.937 0.003315 **
+# TBI_3catmild TBI                    0.1703853  0.0451394   3.775 0.000160 ***
+# TBI_3catpossible mild TBI           0.0778941  0.0283615   2.746 0.006024 ** 
+ 
 exp(confint(nb2modelFull2))
-# cond.TBI_3catmild TBI                   0.0845536777  0.261389747  1.729717e-01
-# cond.TBI_3catpossible mild TBI          0.0277276241  0.138984231  8.335593e-02
-exp(0.1729717)
-exp(0.08335593)
-
-
-#                                         2.5 %    97.5 %  Estimate
-#cond.TBI_3catmild TBI                  1.0937612 1.3051680 1.1947980
-#cond.TBI_3catpossible mild TBI         1.0289436 1.1500982 1.0878355
+# cond.TBI_3catmild TBI                   1.0853622  1.2954483 1.1857616
+# cond.TBI_3catpossible mild TBI          1.0225573  1.1428001 1.0810081
+ 
 
 
 ################
@@ -303,7 +294,7 @@ result
  
 ###########
 
-#mediation analyses only includes year 3 data (i.e., second time the ABCD Study did MRI scanning)
+#mediation analyses only includes year 2 data (i.e., second time the ABCD Study did MRI scanning)
 
 ######
 #total cortical area
@@ -312,7 +303,7 @@ system.time(model_mediator1 <- bf(smri_area_cdk_total_scaled ~ 1 + TBI_3cat +int
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome1 <- bf(CBCL_total ~ 1 + smri_area_cdk_total_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+mri_info_manufacturer+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result1<- brm(model_mediator1+ model_outcome1 + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result1<- brm(model_mediator1+ model_outcome1 + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 100, seed=1234, threads = threading(8))
 summary(med_result1)
 bayestestR::mediation(med_result1, treatment="TBI_3catmildTBI")
@@ -338,7 +329,7 @@ system.time(model_mediator1b <- bf(smri_area_cdk_total_scaled ~ 1 + TBI_3cat +in
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome1b <- bf(pps_y_ss_severity_score ~ 1 + smri_area_cdk_total_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+mri_info_manufacturer+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result1b<- brm(model_mediator1b+ model_outcome1b + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result1b<- brm(model_mediator1b+ model_outcome1b + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result1b)
 bayestestR::mediation(med_result1b, treatment="TBI_3catmildTBI")
@@ -367,7 +358,7 @@ system.time(model_mediator2 <- bf(smri_area_cdk_totallh_scaled~ 1 + TBI_3cat +in
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome2 <- bf(CBCL_total ~ 1 + smri_area_cdk_totallh_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result2<- brm(model_mediator2+ model_outcome2 + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result2<- brm(model_mediator2+ model_outcome2 + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 1000, seed=1234, threads = threading(8))
 summary(med_result2)
 bayestestR::mediation(med_result2, treatment="TBI_3catmildTBI")
@@ -389,7 +380,7 @@ system.time(model_mediator2b <- bf(smri_area_cdk_totallh_scaled ~ 1 + TBI_3cat +
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome2b <- bf(pps_y_ss_severity_score ~ 1 + smri_area_cdk_totallh_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+mri_info_manufacturer+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result2b<- brm(model_mediator2b+ model_outcome2b + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result2b<- brm(model_mediator2b+ model_outcome2b + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result2b)
 bayestestR::mediation(med_result2b, treatment="TBI_3catmildTBI")
@@ -413,7 +404,7 @@ system.time(model_mediator3 <- bf(smri_area_cdk_totalrh_scaled ~ 1 + TBI_3cat +i
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome3 <- bf(pps_y_ss_severity_score ~ 1 + smri_area_cdk_totalrh_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+mri_info_manufacturer+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result3<- brm(model_mediator3+ model_outcome3 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result3<- brm(model_mediator3+ model_outcome3 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result3)
 bayestestR::mediation(med_result3, treatment="TBI_3catmildTBI")
@@ -434,7 +425,7 @@ system.time(model_mediator3 <- bf(smri_vol_cdk_total_scaled ~ 1 + TBI_3cat +inte
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome3 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_cdk_total_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result3<- brm(model_mediator3+ model_outcome3 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result3<- brm(model_mediator3+ model_outcome3 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 1000, seed=1234, threads = threading(8))
 summary(med_result3)
 bayestestR::mediation(med_result3, treatment="TBI_3catmildTBI")
@@ -458,7 +449,7 @@ system.time(model_mediator3b <- bf(smri_vol_cdk_total_scaled ~ 1 + TBI_3cat + in
                                    +rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome3b<- bf(CBCL_total ~ 1 + smri_vol_cdk_total_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                    high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result3b<- brm(model_mediator3b+ model_outcome3b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result3b<- brm(model_mediator3b+ model_outcome3b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result3b)
 bayestestR::mediation(med_result3b, treatment="TBI_3catmildTBI")
@@ -482,7 +473,7 @@ system.time(model_mediator4 <- bf(smri_thick_cdk_mean_scaled ~ 1 + TBI_3cat +int
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome4 <- bf(pps_y_ss_severity_score ~ 1 + smri_thick_cdk_mean_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result4<- brm(model_mediator4+ model_outcome4 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result4<- brm(model_mediator4+ model_outcome4 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 1000, seed=1234, threads = threading(8))
 summary(med_result4)
 bayestestR::mediation(med_result4, treatment="TBI_3catmildTBI")
@@ -504,7 +495,7 @@ system.time(model_mediator4b <- bf(smri_thick_cdk_mean_scaled ~ 1 + TBI_3cat + i
                                    +rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome4b<- bf(CBCL_total ~ 1 + smri_thick_cdk_mean_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                    high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result4b<- brm(model_mediator4b+ model_outcome4b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result4b<- brm(model_mediator4b+ model_outcome4b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result4b)
 bayestestR::mediation(med_result4b, treatment="TBI_3catmildTBI")
@@ -525,7 +516,7 @@ system.time(model_mediator5 <- bf(smri_sulc_cdk_mean_scaled ~ 1 + TBI_3cat +inte
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome5 <- bf(pps_y_ss_severity_score ~ 1 + smri_sulc_cdk_mean_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result5<- brm(model_mediator5+ model_outcome5 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result5<- brm(model_mediator5+ model_outcome5 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 1000, seed=1234, threads = threading(8))
 summary(med_result5)
 bayestestR::mediation(med_result5, treatment="TBI_3catmildTBI")
@@ -548,7 +539,7 @@ system.time(model_mediator5b <- bf(smri_sulc_cdk_mean_scaled ~ 1 + TBI_3cat + in
                                    +rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome5b<- bf(CBCL_total ~ 1 + smri_sulc_cdk_mean_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                    high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result5b<- brm(model_mediator5b+ model_outcome5b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result5b<- brm(model_mediator5b+ model_outcome5b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result5b)
 bayestestR::mediation(med_result5b, treatment="TBI_3catmildTBI")
@@ -570,7 +561,7 @@ system.time(model_mediator6 <- bf(smri_vol_scs_intracranialv_scaled ~ 1 + TBI_3c
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome6 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_intracranialv_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result6<- brm(model_mediator6+ model_outcome6 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result6<- brm(model_mediator6+ model_outcome6 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 1000, seed=1234, threads = threading(8))
 summary(med_result6)
 bayestestR::mediation(med_result6, treatment="TBI_3catmildTBI")
@@ -590,7 +581,7 @@ system.time(model_mediator6b <- bf(smri_vol_scs_intracranialv_scaled ~ 1 + TBI_3
                                    +rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome6b<- bf(CBCL_total ~ 1 + smri_vol_scs_intracranialv_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                    high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result6b<- brm(model_mediator6b+ model_outcome6b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result6b<- brm(model_mediator6b+ model_outcome6b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result6b)
 bayestestR::mediation(med_result6b, treatment="TBI_3catmildTBI")
@@ -612,7 +603,7 @@ system.time(model_mediator7 <- bf(smri_vol_scs_subcorticalgv_scaled ~ 1 + TBI_3c
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome7 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_subcorticalgv_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result7<- brm(model_mediator7+ model_outcome7 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result7<- brm(model_mediator7+ model_outcome7 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result7)
 bayestestR::mediation(med_result7, treatment="TBI_3catmildTBI")
@@ -634,7 +625,7 @@ system.time(model_mediator7b <- bf(smri_vol_scs_subcorticalgv_scaled ~ 1 + TBI_3
                                    +rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome7b<- bf(CBCL_total ~ 1 + smri_vol_scs_subcorticalgv_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                    high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result7b<- brm(model_mediator7b+ model_outcome7b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result7b<- brm(model_mediator7b+ model_outcome7b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result7b)
 bayestestR::mediation(med_result7b, treatment="TBI_3catmildTBI")
@@ -656,7 +647,7 @@ system.time(model_mediator8 <- bf(smri_vol_scs_cbwmatterrh_scaled ~ 1 + TBI_3cat
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome8 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_cbwmatterrh_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result8<- brm(model_mediator8+ model_outcome8 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result8<- brm(model_mediator8+ model_outcome8 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result8)
 bayestestR::mediation(med_result8, treatment="TBI_3catmildTBI")
@@ -679,7 +670,7 @@ system.time(model_mediator8b <- bf(smri_vol_scs_cbwmatterrh_scaled ~ 1 + TBI_3ca
                                    +rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome8b<- bf(CBCL_total ~ 1 + smri_vol_scs_cbwmatterrh_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                    high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result8b<- brm(model_mediator8b+ model_outcome8b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result8b<- brm(model_mediator8b+ model_outcome8b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result8b)
 bayestestR::mediation(med_result8b, treatment="TBI_3catmildTBI")
@@ -705,7 +696,7 @@ system.time(model_mediator9 <- bf(smri_vol_scs_cbwmatterlh_scaled ~ 1 + TBI_3cat
                                   +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome9 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_cbwmatterlh_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                    FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result9<- brm(model_mediator9+ model_outcome9 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result9<- brm(model_mediator9+ model_outcome9 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                   backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result9)
 bayestestR::mediation(med_result9, treatment="TBI_3catmildTBI")
@@ -728,7 +719,7 @@ system.time(model_mediator9b <- bf(smri_vol_scs_cbwmatterlh_scaled ~ 1 + TBI_3ca
                                    +rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome9b<- bf(CBCL_total ~ 1 + smri_vol_scs_cbwmatterlh_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                    high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result9b<- brm(model_mediator9b+ model_outcome9b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result9b<- brm(model_mediator9b+ model_outcome9b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result9b)
 bayestestR::mediation(med_result9b, treatment="TBI_3catmildTBI")
@@ -752,7 +743,7 @@ system.time(model_mediator11 <- bf(smri_vol_scs_wholeb_scaled ~ 1 + TBI_3cat +in
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome11 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_wholeb_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result11<- brm(model_mediator11+ model_outcome11 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result11<- brm(model_mediator11+ model_outcome11 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result11)
 bayestestR::mediation(med_result11, treatment="TBI_3catmildTBI")
@@ -775,7 +766,7 @@ system.time(model_mediator11b <- bf(smri_vol_scs_wholeb_scaled ~ 1 + TBI_3cat + 
                                     +rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome11b<- bf(CBCL_total ~ 1 + smri_vol_scs_wholeb_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                     high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result11b<- brm(model_mediator11b+ model_outcome11b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result11b<- brm(model_mediator11b+ model_outcome11b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result11b)
 bayestestR::mediation(med_result11b, treatment="TBI_3catmildTBI")
@@ -800,7 +791,7 @@ system.time(model_mediator12a <- bf(smri_vol_scs_csf_scaled ~ 1 + TBI_3cat +inte
                                     +FH_Psychosis+high_educ+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome12a <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_csf_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+
                                      FH_Psychosis+ high_educ+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result12a<- brm(model_mediator12a+ model_outcome12a + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result12a<- brm(model_mediator12a+ model_outcome12a + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result12)
 bayestestR::mediation(med_result12, treatment="TBI_3catmildTBI")
@@ -825,7 +816,7 @@ system.time(model_mediator12 <- bf(smri_vol_scs_csf_scaled ~ 1 + TBI_3cat +inter
                                    +FH_Psychosis+high_educ+Previous_TBI+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome12 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_csf_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+
                                     FH_Psychosis+ high_educ+Previous_TBI+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result12<- brm(model_mediator12+ model_outcome12 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result12<- brm(model_mediator12+ model_outcome12 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result12)
 bayestestR::mediation(med_result12, treatment="TBI_3catmildTBI")
@@ -844,7 +835,7 @@ system.time(model_mediator12b <- bf(smri_vol_scs_csf_scaled ~ 1 + TBI_3cat + int
                                       FH_Psychosis+rel_relationship+ (1 |rel_family_id | abcd_site)))
 system.time(model_outcome12b<- bf(CBCL_total ~ 1 + smri_vol_scs_csf_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                     FH_Psychosis+high_educ+rel_relationship+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result12b<- brm(model_mediator12b+ model_outcome12b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result12b<- brm(model_mediator12b+ model_outcome12b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", seed=1234, warmup = 1000, threads = threading(8))
 summary(med_result12b)
 bayestestR::mediation(med_result12b, treatment="TBI_3catmildTBI")
@@ -865,7 +856,7 @@ system.time(model_mediator158 <- bf(smri_vol_scs_wmhint_scaled ~ 1 + TBI_3cat +i
                                     +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome158 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_wmhint_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+mri_info_manufacturer+high_educ+motion_qc+
                                      FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result158<- brm(model_mediator158+ model_outcome158 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result158<- brm(model_mediator158+ model_outcome158 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result158)
 bayestestR::mediation(med_result158, treatment="TBI_3catmildTBI")
@@ -882,7 +873,7 @@ system.time(model_mediator13 <- bf(smri_vol_scs_allventricles_scaled ~ 1 + TBI_3
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome13 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_allventricles_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result13<- brm(model_mediator13+ model_outcome13 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result13<- brm(model_mediator13+ model_outcome13 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result13)
 bayestestR::mediation(med_result13, treatment="TBI_3catmildTBI")
@@ -903,7 +894,7 @@ system.time(model_mediator13b <- bf(smri_vol_scs_allventricles_scaled ~ 1 + TBI_
                                       FH_Psychosis+rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome13b<- bf(CBCL_total ~ 1 + smri_vol_scs_allventricles_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                     FH_Psychosis+high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result13b<- brm(model_mediator13b+ model_outcome13b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result13b<- brm(model_mediator13b+ model_outcome13b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", seed=1234, warmup = 1000, threads = threading(8))
 summary(med_result13b)
 bayestestR::mediation(med_result13b, treatment="TBI_3catmildTBI")
@@ -926,7 +917,7 @@ system.time(model_mediator14 <- bf(smri_vol_scs_ltventriclelh_scaled ~ 1 + TBI_3
                                      FH_Psychosis+rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome14<- bf(CBCL_total ~ 1 + smri_vol_scs_ltventriclelh_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                    FH_Psychosis+high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result14<- brm(model_mediator14+ model_outcome14 + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result14<- brm(model_mediator14+ model_outcome14 + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", seed=1234, warmup = 1000, threads = threading(8))
 summary(med_result14)
 bayestestR::mediation(med_result14, treatment="TBI_3catmildTBI")
@@ -948,7 +939,7 @@ system.time(model_mediator14b <- bf(smri_vol_scs_ltventriclelh_scaled ~ 1 + TBI_
                                     +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome14b <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_ltventriclelh_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                      FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result14b<- brm(model_mediator14b+ model_outcome14b + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result14b<- brm(model_mediator14b+ model_outcome14b + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result14b)
 bayestestR::mediation(med_result14b, treatment="TBI_3catmildTBI")
@@ -968,7 +959,7 @@ system.time(model_mediator15 <- bf(smri_vol_scs_ltventriclerh_scaled ~ 1 + TBI_3
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome15 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_ltventriclerh_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result15<- brm(model_mediator15+ model_outcome15 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result15<- brm(model_mediator15+ model_outcome15 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result15)
 bayestestR::mediation(med_result15, treatment="TBI_3catmildTBI")
@@ -990,7 +981,7 @@ system.time(model_mediator15b <- bf(smri_vol_scs_ltventriclerh_scaled ~ 1 + TBI_
                                       FH_Psychosis+rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome15b<- bf(CBCL_total ~ 1 + smri_vol_scs_ltventriclerh_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                     FH_Psychosis+high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result15b<- brm(model_mediator15b+ model_outcome15b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result15b<- brm(model_mediator15b+ model_outcome15b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", seed=1234, warmup = 1000, threads = threading(8))
 summary(med_result15b)
 bayestestR::mediation(med_result15b, treatment="TBI_3catmildTBI")
@@ -1012,7 +1003,7 @@ system.time(model_mediator16 <- bf(smri_vol_scs_3rdventricle_scaled ~ 1 + TBI_3c
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome16 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_3rdventricle_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result16<- brm(model_mediator16+ model_outcome16 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result16<- brm(model_mediator16+ model_outcome16 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result16)
 bayestestR::mediation(med_result16, treatment="TBI_3catmildTBI")
@@ -1034,7 +1025,7 @@ system.time(model_mediator16b <- bf(smri_vol_scs_3rdventricle_scaled ~ 1 + TBI_3
                                       FH_Psychosis+rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome16b<- bf(CBCL_total ~ 1 + smri_vol_scs_3rdventricle_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                     FH_Psychosis+high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result16b<- brm(model_mediator16b+ model_outcome16b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result16b<- brm(model_mediator16b+ model_outcome16b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", seed=1234, warmup = 1000, threads = threading(8))
 summary(med_result16b)
 bayestestR::mediation(med_result16b, treatment="TBI_3catmildTBI")
@@ -1056,7 +1047,7 @@ system.time(model_mediator17 <- bf(smri_vol_scs_4thventricle_scaled ~ 1 + TBI_3c
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome17 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_4thventricle_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result17<- brm(model_mediator17+ model_outcome17 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result17<- brm(model_mediator17+ model_outcome17 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result17)
 bayestestR::mediation(med_result17, treatment="TBI_3catmildTBI")
@@ -1082,7 +1073,7 @@ system.time(model_mediator17b <- bf(smri_vol_scs_4thventricle_scaled ~ 1 + TBI_3
                                       FH_Psychosis+rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome17b<- bf(CBCL_total ~ 1 + smri_vol_scs_4thventricle_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                     FH_Psychosis+high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result17b<- brm(model_mediator17b+ model_outcome17b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result17b<- brm(model_mediator17b+ model_outcome17b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", seed=1234, warmup = 1000, threads = threading(8))
 summary(med_result17b)
 bayestestR::mediation(med_result17b, treatment="TBI_3catmildTBI")
@@ -1103,7 +1094,7 @@ system.time(model_mediator18 <- bf(smri_vol_scs_inflatventlh.x_scaled ~ 1 + TBI_
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome18 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_inflatventlh.x_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result18<- brm(model_mediator18+ model_outcome18 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result18<- brm(model_mediator18+ model_outcome18 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result18)
 bayestestR::mediation(med_result18, treatment="TBI_3catmildTBI")
@@ -1125,7 +1116,7 @@ system.time(model_mediator18b <- bf(smri_vol_scs_inflatventlh.x_scaled ~ 1 + TBI
                                       FH_Psychosis+rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome18b<- bf(CBCL_total ~ 1 + smri_vol_scs_inflatventlh.x_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                     FH_Psychosis+high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result18b<- brm(model_mediator18b+ model_outcome18b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result18b<- brm(model_mediator18b+ model_outcome18b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", seed=1234, warmup = 1000, threads = threading(8))
 summary(med_result18b)
 bayestestR::mediation(med_result18b, treatment="TBI_3catmildTBI")
@@ -1146,7 +1137,7 @@ system.time(model_mediator19 <- bf(smri_vol_scs_inflatventrh.x_scaled ~ 1 + TBI_
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome19 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_inflatventrh.x_scaled + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result19<- brm(model_mediator19+ model_outcome19 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result19<- brm(model_mediator19+ model_outcome19 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result19)
 bayestestR::mediation(med_result19, treatment="TBI_3catmildTBI")
@@ -1167,7 +1158,7 @@ system.time(model_mediator19b <- bf(smri_vol_scs_inflatventrh.x_scaled ~ 1 + TBI
                                       FH_Psychosis+rel_relationship+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome19b<- bf(CBCL_total ~ 1 + smri_vol_scs_inflatventrh.x_scaled + TBI_3cat +interview_age_scaled+sex+race_ethnicity+household_income+
                                     FH_Psychosis+high_educ+rel_relationship+(1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result19b<- brm(model_mediator19b+ model_outcome19b + set_rescor(FALSE), data=year3CBCL, cores=4, control=list(adapt_delta=0.80),
+med_result19b<- brm(model_mediator19b+ model_outcome19b + set_rescor(FALSE), data=year2CBCL, cores=4, control=list(adapt_delta=0.80),
                     backend="cmdstanr", seed=1234, warmup = 1000, threads = threading(8))
 summary(med_result19b)
 bayestestR::mediation(med_result19b, treatment="TBI_3catmildTBI")
@@ -1188,7 +1179,7 @@ system.time(model_mediator35 <- bf(smri_vol_scs_csf ~ 1 + TBI_3cat +interview_ag
                                    +FH_Psychosis+(1 |rel_family_id | abcd_site)))
 system.time(model_outcome35 <- bf(pps_y_ss_severity_score ~ 1 + smri_vol_scs_csf + TBI_3cat + interview_age_scaled+sex+race_ethnicity+ household_income+high_educ+
                                     FH_Psychosis+ (1 |rel_family_id | abcd_site),family=negbinomial()))
-med_result35<- brm(model_mediator35+ model_outcome35 + set_rescor(FALSE), data=year3, cores=4, control=list(adapt_delta=0.80),
+med_result35<- brm(model_mediator35+ model_outcome35 + set_rescor(FALSE), data=year2, cores=4, control=list(adapt_delta=0.80),
                    backend="cmdstanr", warmup = 1000, threads = threading(8))
 summary(med_result35)
 bayestestR::mediation(med_result35, treatment="TBI_3catmildTBI")
