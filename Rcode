@@ -35,7 +35,7 @@ TMB::openmp(16)
 
 system.time(Model_PPS <- glmmTMB(pps_y_ss_severity_score ~ 1+ visit+sex+interview_age+race_ethnicity+
                                    high.educ.bl+household.income.bl+neighborhood_crime_y+rel_relationship+
-                                   pmq_y_ss_mean+marital_allvisits+FH_Psychosis+TBI_3cat+(0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
+                                   pmq_y_ss_mean+marital_allvisits+FH_Psychosis+TBI_3cat+(1+visit|abcd_site/rel_family_id), 
                                  family=nbinom2, data=ABCD_TBI,  control = glmmTMBControl(parallel = 16)))
 summary(Model_PPS)
 #Number of obs: 30249, groups:  src_subject_id, 10722; abcd_site, 22; rel_family_id, 8901
@@ -58,7 +58,7 @@ exp(confint(Model_PPS))
 
 system.time(Model_CBCL <- glmmTMB(CBCL_total ~ 1+ visit+sex+interview_age+race_ethnicity+
                                     high.educ.bl+household.income.bl+neighborhood_crime_y+rel_relationship+
-                                    pmq_y_ss_mean+marital_allvisits+FH_Psychosis+TBI_3cat+(0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
+                                    pmq_y_ss_mean+marital_allvisits+FH_Psychosis+TBI_3cat+(1+visit|abcd_site/rel_family_id), 
                               family=nbinom2, data=ABCD_TBI,  control = glmmTMBControl(parallel = 16)))
 #   user  system elapsed 
 #1055.52    4.92  120.22 
@@ -139,7 +139,7 @@ for (i in 1:20) {
   com <- complete(imppmm3, i)
   nb2modelFull1 <- glmmTMB::glmmTMB(pps_y_ss_severity_score ~ 1+ visit+sex+interview_age+race_ethnicity+
                                       high.educ.bl+household.income.bl+neighborhood_crime_y+rel_relationship+
-                                      pmq_y_ss_mean+marital_allvisits+FH_Psychosis+TBI_3cat+(0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
+                                      pmq_y_ss_mean+marital_allvisits+FH_Psychosis+TBI_3cat+(1+visit|abcd_site/rel_family_id), 
                                     family=nbinom2, data=com,  control = glmmTMBControl(parallel = 16))
   s <- summary(nb2modelFull1)
   est[[i]] <- s$coefficients$cond[, 1]
@@ -253,7 +253,7 @@ for (i in 1:20) {
   com1 <- complete(imppmm3, i)
   nb2modelFull2 <- glmmTMB::glmmTMB(CBCL_total ~  1+ visit+sex+interview_age+race_ethnicity+
                                       high.educ.bl+household.income.bl+neighborhood_crime_y+rel_relationship+
-                                      pmq_y_ss_mean+marital_allvisits+FH_Psychosis+TBI_3cat+(0+visit|src_subject_id)+(1 | abcd_site) + (1| rel_family_id), 
+                                      pmq_y_ss_mean+marital_allvisits+FH_Psychosis+TBI_3cat+(1+visit|abcd_site/rel_family_id), 
                                     family=nbinom2, data=com1,  control = glmmTMBControl(parallel = 16))
   s <- summary(nb2modelFull2)
   est[[i]] <- s$coefficients$cond[, 1]
